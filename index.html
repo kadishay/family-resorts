@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Resorts Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    #map { width: 100vw; height: 100vh; }
+    .legend {
+      background: white;
+      padding: 14px 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      font-size: 13px;
+      min-width: 190px;
+    }
+    .legend h4 { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #222; letter-spacing: 0.02em; }
+    .legend-item { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; color: #333; }
+    .legend-dot {
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.9);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+      flex-shrink: 0;
+    }
+    .legend-divider { border: none; border-top: 1px solid #eee; margin: 8px 0; }
+    .popup-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; color: #111; }
+    .popup-loc { color: #555; font-size: 12px; line-height: 1.4; }
+    .popup-tag {
+      display: inline-block; margin-top: 5px;
+      font-size: 11px; font-weight: 600; padding: 2px 7px;
+      border-radius: 10px; color: white;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const COLORS = {
+  'spa-AT': '#e63946',
+  'spa-DE': '#457b9d',
+  'spa-IT': '#2a9d8f',
+  'cp':     '#e07b00',
+};
+const LABELS = {
+  'spa-AT': 'Austria – Family Spa Resort',
+  'spa-DE': 'Germany – Family Spa Resort',
+  'spa-IT': 'Italy – Family Spa Resort',
+  'cp':     'Center Parcs',
+};
+
+const places = [
+  // ── FAMILY SPA RESORTS: AUSTRIA ──────────────────────────────────────────
+  { name:"Sport- und Familienresort Alpenblick",          loc:"Zell am See, Salzburg",              tag:"4★ Superior",    lat:47.3254, lng:12.7948, g:"spa-AT" },
+  { name:"STOCK resort",                                   loc:"Finkenberg, Zillertal, Tyrol",        tag:"5★ Superior",    lat:47.1701, lng:11.8558, g:"spa-AT" },
+  { name:"Naturhotel Kitzspitz",                           loc:"St. Jakob, Tyrol",                    tag:"4★",             lat:47.4848, lng:12.4078, g:"spa-AT" },
+  { name:"DAS EDELWEISS Salzburg Mountain Resort",         loc:"Großarl, Salzburg",                   tag:"5★",             lat:47.2344, lng:13.1983, g:"spa-AT" },
+  { name:"Familiäres Wellnesshotel Truyenhof",             loc:"Ried im Oberinntal, Tyrol",           tag:"4★",             lat:47.0833, lng:10.6667, g:"spa-AT" },
+  { name:"die HOCHKÖNIGIN Mountain Resort",                loc:"Maria Alm, Salzburg",                 tag:"4★ Superior",    lat:47.4055, lng:12.8950, g:"spa-AT" },
+  { name:"Vitalhotel Edelweiss",                           loc:"Neustift im Stubaital, Tyrol",        tag:"4★ Superior",    lat:47.1162, lng:11.3177, g:"spa-AT" },
+  { name:"Ferienwelt Kesselgrub",                          loc:"Altenmarkt im Pongau, Salzburg",      tag:"4★",             lat:47.3819, lng:13.4072, g:"spa-AT" },
+  { name:"Waldhof Fuschlsee Resort",                       loc:"Fuschl am See, Salzburg",             tag:"4★ Superior",    lat:47.7996, lng:13.2981, g:"spa-AT" },
+  { name:"Landhotel Schermer",                             loc:"Westendorf, Tyrol",                   tag:"4★ Superior",    lat:47.4310, lng:12.2083, g:"spa-AT" },
+  { name:"Mountain Resort Feuerberg",                      loc:"Bodensdorf, Carinthia",               tag:"5★",             lat:46.7825, lng:13.9691, g:"spa-AT" },
+  { name:"Hotel Theresa",                                  loc:"Zell am Ziller, Tyrol",               tag:"4★ Superior",    lat:47.2315, lng:11.8828, g:"spa-AT" },
+  { name:"Scheiblhofer THE RESORT",                        loc:"Andau, Burgenland",                   tag:"4★ Superior",    lat:47.8163, lng:17.0355, g:"spa-AT" },
+  { name:"Schlosshotel Lacknerhof",                        loc:"Flachau, Salzburg",                   tag:"4★ Superior",    lat:47.3387, lng:13.3887, g:"spa-AT" },
+  { name:"Natur- und Wellnesshotel Höflehner",             loc:"Gumpenberg, Styria",                  tag:"4★ Superior",    lat:47.4008, lng:13.7607, g:"spa-AT" },
+  { name:"VILA VITA Pannonia",                             loc:"Pamhagen, Burgenland",                tag:"4★ Superior",    lat:47.6832, lng:16.8981, g:"spa-AT" },
+  { name:"Valavier Aktivresort",                           loc:"Brand, Vorarlberg",                   tag:"4★ Superior",    lat:47.1000, lng:9.7450,  g:"spa-AT" },
+  { name:"Good Life Resort Riederalm",                     loc:"Leogang, Salzburg",                   tag:"4★ Superior",    lat:47.4398, lng:12.7557, g:"spa-AT" },
+  { name:"Wellnesshotel …liebes Rot-Flüh",                 loc:"Grän, Tyrol",                         tag:"4★ Superior",    lat:47.5012, lng:10.5347, g:"spa-AT" },
+  { name:"Wellnesshotel Eggerwirt",                        loc:"St. Michael im Lungau, Salzburg",     tag:"4★ Superior",    lat:47.0985, lng:13.6295, g:"spa-AT" },
+  { name:"Familien- & Spa-Resort Jesacherhof",             loc:"St. Jakob in Defereggen, Tyrol",      tag:"4★ Superior",    lat:46.9150, lng:12.3815, g:"spa-AT" },
+  { name:"Hotel Paradiso",                                 loc:"Bad Schallerbach, Upper Austria",     tag:"4★ Superior",    lat:48.2291, lng:13.9207, g:"spa-AT" },
+  { name:"My Alpenwelt Resort",                            loc:"Königsleiten, Salzburg",               tag:"4★ Superior",    lat:47.2497, lng:12.2016, g:"spa-AT" },
+  { name:"Der Böglerhof – pure nature spa resort",         loc:"Alpbach, Tyrol",                      tag:"5★",             lat:47.3836, lng:11.9286, g:"spa-AT" },
+  { name:"Lürzerhof – luxury.nature.spa",                  loc:"Untertauern, Salzburg",               tag:"4★ Superior",    lat:47.2810, lng:13.4701, g:"spa-AT" },
+  { name:"Alpenrose",                                      loc:"Lermoos, Tyrol",                      tag:"Familux Resort",  lat:47.4040, lng:10.8819, g:"spa-AT" },
+  { name:"Dachsteinkönig",                                 loc:"Gosau, Upper Austria",                tag:"Familux Resort",  lat:47.5333, lng:13.5050, g:"spa-AT" },
+  { name:"Naturhotel Forsthofgut",                         loc:"Leogang, Salzburg",                   tag:"5★",             lat:47.4423, lng:12.7569, g:"spa-AT" },
+  { name:"Stanglwirt",                                     loc:"Going am Wilden Kaiser, Tyrol",       tag:"5★",             lat:47.5533, lng:12.3744, g:"spa-AT" },
+
+  // ── FAMILY SPA RESORTS: GERMANY ──────────────────────────────────────────
+  { name:"Vier Jahreszeiten am Schluchsee",                loc:"Schluchsee, Baden-Württemberg",       tag:"Spa Hotel",      lat:47.8197, lng:8.1878,  g:"spa-DE" },
+  { name:"Hotel EDELWEISS Berchtesgaden",                  loc:"Berchtesgaden, Bavaria",              tag:"4★ Superior",    lat:47.6325, lng:13.0003, g:"spa-DE" },
+  { name:"Wellness- & Aktivhotel Bodenmaiser Hof",         loc:"Bodenmais, Bavaria",                  tag:"4★ Superior",    lat:48.9502, lng:13.0997, g:"spa-DE" },
+  { name:"Wellness- & Erlebnisresort Sonnenhof",           loc:"Lam, Bayerischer Wald, Bavaria",      tag:"4★ Superior",    lat:49.0703, lng:13.0086, g:"spa-DE" },
+  { name:"Strandhotel Fischland",                          loc:"Dierhagen, Mecklenburg-Vorpommern",   tag:"5★",             lat:54.3100, lng:12.3667, g:"spa-DE" },
+  { name:"Familotel Bayerischer Wald ULRICHSHOF",          loc:"Rimbach, Bavaria",                    tag:"4★ Superior",    lat:48.9333, lng:12.9497, g:"spa-DE" },
+  { name:"Hotel MY Kramerwirt",                            loc:"Geiersthal, Bavaria",                 tag:"4★",             lat:48.9824, lng:12.9395, g:"spa-DE" },
+  { name:"Spa & Resort Bachmair Weissach",                 loc:"Rottach-Egern, Bavaria",              tag:"5★",             lat:47.6960, lng:11.7157, g:"spa-DE" },
+  { name:"Oberjoch",                                       loc:"Bad Hindelang, Bavaria",              tag:"Familux Resort",  lat:47.5185, lng:10.3823, g:"spa-DE" },
+  { name:"The Grand Green",                                loc:"Thuringian Forest, Thuringia",        tag:"Familux Resort",  lat:50.6522, lng:10.7000, g:"spa-DE" },
+
+  // ── FAMILY SPA RESORTS: ITALY ─────────────────────────────────────────────
+  { name:"Alpiana Mountain Resort & SPA",                  loc:"Völlan/Lana, South Tyrol",            tag:"4★ Superior",    lat:46.6186, lng:11.1444, g:"spa-IT" },
+  { name:"Feuerstein Nature Family Resort",                loc:"Vals, South Tyrol",                   tag:"5★",             lat:46.9900, lng:11.5100, g:"spa-IT" },
+  { name:"Das Paradies",                                   loc:"Latsch, South Tyrol",                 tag:"5★",             lat:46.6176, lng:10.8657, g:"spa-IT" },
+  { name:"Lindenhof Pure Luxury & Spa DolceVita Resort",   loc:"Naturns, South Tyrol",                tag:"5★",             lat:46.6526, lng:11.0063, g:"spa-IT" },
+  { name:"ADLER Spa Resort DOLOMITI",                      loc:"St. Ulrich, South Tyrol",             tag:"5★",             lat:46.5755, lng:11.6722, g:"spa-IT" },
+  { name:"Viktoria Alpine Hideaway",                       loc:"Hafling, South Tyrol",                tag:"4★ Superior",    lat:46.6903, lng:11.2028, g:"spa-IT" },
+  { name:"Lake Spa Hotel SEELEITEN",                       loc:"Kaltern/Caldaro, South Tyrol",        tag:"5★",             lat:46.4124, lng:11.2478, g:"spa-IT" },
+  { name:"Hotel Ravelli",                                  loc:"Mezzana, Trentino",                   tag:"4★",             lat:46.3143, lng:10.7304, g:"spa-IT" },
+  { name:"Savoy Beach Hotel & Thermal SPA",                loc:"Bibione, Veneto",                     tag:"5★",             lat:45.6339, lng:13.0637, g:"spa-IT" },
+  { name:"Quellenhof Luxury Resort Passeier",              loc:"St. Martin in Passeier, South Tyrol", tag:"5★",             lat:46.7683, lng:11.2322, g:"spa-IT" },
+  { name:"Gartenhotel Moser",                              loc:"Eppan an der Weinstraße, South Tyrol",tag:"4★",             lat:46.4538, lng:11.2461, g:"spa-IT" },
+  { name:"Quellenhof Luxury Resort Lazise",                loc:"Lazise, Veneto",                      tag:"5★",             lat:45.5020, lng:10.7333, g:"spa-IT" },
+  { name:"Sonnwies",                                       loc:"Lüsen, South Tyrol",                  tag:"5★",             lat:46.7344, lng:11.6292, g:"spa-IT" },
+
+  // ── CENTER PARCS: FRANCE ─────────────────────────────────────────────────
+  { name:"Center Parcs Villages Nature Paris",             loc:"Bailly-Romainvilliers, Ile-de-France",tag:"Center Parcs",   lat:48.8495, lng:2.8423,  g:"cp" },
+  { name:"Center Parcs Le Lac d'Ailette",                  loc:"Chamouille, Hauts-de-France",         tag:"Center Parcs",   lat:49.5374, lng:3.6127,  g:"cp" },
+  { name:"Center Parcs Les Trois Forêts",                  loc:"Celles-sur-Plaine, Lorraine",         tag:"Center Parcs",   lat:48.4340, lng:7.0670,  g:"cp" },
+  { name:"Center Parcs Les Bois-Francs",                   loc:"Verneuil d'Avre et d'Iton, Normandy", tag:"Center Parcs",   lat:48.7326, lng:0.9168,  g:"cp" },
+  { name:"Center Parcs Le Bois aux Daims",                 loc:"Saint-Georges-lès-Baillargeaux, Vienne",tag:"Center Parcs", lat:46.6500, lng:0.4800,  g:"cp" },
+  { name:"Center Parcs Les Hauts de Bruyères",             loc:"Chaumont-sur-Tharonne, Sologne",      tag:"Center Parcs",   lat:47.5833, lng:1.7413,  g:"cp" },
+  { name:"Center Parcs Les Landes de Gascogne",            loc:"Salles, Nouvelle-Aquitaine",          tag:"Center Parcs",   lat:44.5528, lng:-0.8667, g:"cp" },
+
+  // ── CENTER PARCS: NETHERLANDS ─────────────────────────────────────────────
+  { name:"Center Parcs De Eemhof",                         loc:"Zeewolde, Flevoland",                 tag:"Center Parcs",   lat:52.3147, lng:5.5108,  g:"cp" },
+  { name:"Center Parcs De Kempervennen",                   loc:"Westerhoven, Noord Brabant",          tag:"Center Parcs",   lat:51.3694, lng:5.4583,  g:"cp" },
+  { name:"Center Parcs Het Heijderbos",                    loc:"Heijen, Limburg Netherlands",         tag:"Center Parcs",   lat:51.7086, lng:5.9669,  g:"cp" },
+  { name:"Center Parcs Port Zélande",                      loc:"Ouddorp, Zuid Holland",               tag:"Center Parcs",   lat:51.7667, lng:3.8903,  g:"cp" },
+  { name:"Center Parcs Park Zandvoort",                    loc:"Zandvoort, Noord Holland",            tag:"Center Parcs",   lat:52.3717, lng:4.5297,  g:"cp" },
+  { name:"Center Parcs Het Meerdal",                       loc:"America, Limburg Netherlands",        tag:"Center Parcs",   lat:51.4578, lng:5.9847,  g:"cp" },
+  { name:"Center Parcs De Huttenheugte",                   loc:"Dalen, Drenthe",                      tag:"Center Parcs",   lat:52.6894, lng:6.7736,  g:"cp" },
+  { name:"Center Parcs Parc Sandur",                       loc:"Hooghalen, Drenthe",                  tag:"Center Parcs",   lat:52.9167, lng:6.5667,  g:"cp" },
+  { name:"Center Parcs Limburgse Peel",                    loc:"Sevenum, Limburg Netherlands",        tag:"Center Parcs",   lat:51.4260, lng:5.9780,  g:"cp" },
+
+  // ── CENTER PARCS: BELGIUM ─────────────────────────────────────────────────
+  { name:"Center Parcs De Vossemeren",                     loc:"Lommel, Limburg Belgium",             tag:"Center Parcs",   lat:51.2167, lng:5.3167,  g:"cp" },
+  { name:"Center Parcs Park De Haan",                      loc:"De Haan, West Flanders",              tag:"Center Parcs",   lat:51.1419, lng:3.0330,  g:"cp" },
+  { name:"Center Parcs Erperheide",                        loc:"Peer, Limburg Belgium",               tag:"Center Parcs",   lat:51.1319, lng:5.4533,  g:"cp" },
+  { name:"Center Parcs Les Ardennes",                      loc:"Libin, Ardennes Belgium",             tag:"Center Parcs",   lat:49.9817, lng:5.2500,  g:"cp" },
+  { name:"Center Parcs Terhills Resort",                   loc:"Maasmechelen, Limburg Belgium",       tag:"Center Parcs",   lat:50.9689, lng:5.6414,  g:"cp" },
+
+  // ── CENTER PARCS: GERMANY ─────────────────────────────────────────────────
+  { name:"Center Parcs Park Allgäu",                       loc:"Leutkirch im Allgäu, South Germany",  tag:"Center Parcs",   lat:47.8367, lng:10.0197, g:"cp" },
+  { name:"Center Parcs Park Bostalsee",                    loc:"Nohfelden, Saarland",                 tag:"Center Parcs",   lat:49.5833, lng:7.1167,  g:"cp" },
+  { name:"Center Parcs Park Hochsauerland",                loc:"Medebach-Küstelberg, NRW",            tag:"Center Parcs",   lat:51.1833, lng:8.6167,  g:"cp" },
+  { name:"Center Parcs Park Eifel",                        loc:"Stadtkyll, Rheinland-Pfalz",          tag:"Center Parcs",   lat:50.2500, lng:6.5300,  g:"cp" },
+  { name:"Center Parcs Park Nordseeküste",                 loc:"Nordseeküste, Lower Saxony",          tag:"Center Parcs",   lat:53.7000, lng:7.9000,  g:"cp" },
+  { name:"Center Parcs Bispinger Heide",                   loc:"Bispingen, Lüneburger Heide",         tag:"Center Parcs",   lat:53.1167, lng:9.9167,  g:"cp" },
+
+  // ── CENTER PARCS: DENMARK ─────────────────────────────────────────────────
+  { name:"Center Parcs Nordborg Resort",                   loc:"Nordborg, Southern Denmark",          tag:"Center Parcs",   lat:55.0553, lng:9.7478,  g:"cp" },
+];
+
+// ── MAP SETUP ────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true });
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// ── MARKERS ──────────────────────────────────────────────────────────────────
+const bounds = [];
+// Add Center Parcs first (renders beneath spa hotels if overlapping)
+[...places].sort(a => a.g === 'cp' ? -1 : 1).forEach(p => {
+  const color = COLORS[p.g];
+  const isCp = p.g === 'cp';
+  const marker = L.circleMarker([p.lat, p.lng], {
+    radius:      isCp ? 8 : 7,
+    fillColor:   color,
+    color:       'white',
+    weight:      isCp ? 1.5 : 2,
+    opacity:     1,
+    fillOpacity: isCp ? 0.75 : 0.92,
+  }).addTo(map);
+
+  marker.bindPopup(`
+    <div class="popup-name">${p.name}</div>
+    <div class="popup-loc">${p.loc}</div>
+    <span class="popup-tag" style="background:${color}">${p.tag}</span>
+  `, { maxWidth: 260 });
+
+  bounds.push([p.lat, p.lng]);
+});
+
+map.fitBounds(bounds, { padding: [36, 36] });
+
+// ── LEGEND ───────────────────────────────────────────────────────────────────
+const counts = {};
+places.forEach(p => { counts[p.g] = (counts[p.g] || 0) + 1; });
+
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = () => {
+  const div = L.DomUtil.create('div', 'legend');
+  const spaGroups = ['spa-AT','spa-DE','spa-IT'];
+  const spaTotal = spaGroups.reduce((n, g) => n + (counts[g] || 0), 0);
+
+  div.innerHTML = `
+    <h4>Family Resorts Map — ${places.length} locations</h4>
+    <div style="font-size:11px;color:#888;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Family Spa Resorts (${spaTotal})</div>
+    ${spaGroups.map(g => `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${COLORS[g]}"></div>
+        <span>${g === 'spa-AT' ? 'Austria' : g === 'spa-DE' ? 'Germany' : 'Italy'} <span style="color:#888">(${counts[g] || 0})</span></span>
+      </div>`).join('')}
+    <hr class="legend-divider">
+    <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Center Parcs (${counts['cp'] || 0})</div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${COLORS['cp']}"></div>
+      <span>FR · NL · BE · DE · DK</span>
+    </div>
+  `;
+  return div;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
