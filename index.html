@@ -45,6 +45,7 @@ const COLORS = {
   'spa-IT': '#2a9d8f',
   'cp':     '#e07b00',
   'landal': '#7b2d8b',
+  'falk':   '#55a630',
 };
 const LABELS = {
   'spa-AT': 'Austria – Family Spa Resort',
@@ -52,6 +53,7 @@ const LABELS = {
   'spa-IT': 'Italy – Family Spa Resort',
   'cp':     'Center Parcs',
   'landal': 'Landal GreenParks',
+  'falk':   'Falkensteiner Hotels & Residences',
 };
 
 const places = [
@@ -371,6 +373,38 @@ const places = [
   { name:"Whitekirk Hill", loc:"United Kingdom", lat:56.0344820236183, lng:-2.64405399913262, g:"landal", cc:"EU" },
   { name:"Woodland Lakes", loc:"United Kingdom", lat:54.217323, lng:-1.405548, g:"landal", cc:"EU" },
 
+  // ── FALKENSTEINER HOTELS & RESIDENCES ──────────────────────────────────
+  { name:"Falkensteiner Schlosshotel Velden", loc:"Velden am Wörthersee, Carinthia", lat:46.61192, lng:14.04335, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Hotel & Spa Carinzia", loc:"Tröpolach, Carinthia", lat:46.6128, lng:13.28042, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Club Funimation Katschberg", loc:"Katschberg, Salzburg", lat:47.04825, lng:13.61926, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Hotel Cristallo", loc:"Katschberg, Salzburg", lat:47.05823, lng:13.61518, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Residences Edelweiss", loc:"Katschberg, Salzburg", lat:47.05546, lng:13.61264, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Hotel Sonnenalpe", loc:"Nassfeld, Carinthia", lat:46.56443, lng:13.27336, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Hotel Bad Leonfelden", loc:"Bad Leonfelden, Upper Austria", lat:48.52954, lng:14.30304, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Hotel Schladming", loc:"Schladming, Styria", lat:47.39672, lng:13.6958, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Balance Resort Stegersbach", loc:"Stegersbach, Burgenland", lat:47.17054, lng:16.15145, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Family Hotel Montafon", loc:"Montafon, Vorarlberg", lat:47.07426, lng:9.87622, g:"falk", cc:"AT" },
+  { name:"Falkensteiner Hotel Kronplatz", loc:"Kronplatz, South Tyrol", lat:46.77209, lng:11.94302, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Family Resort Lido", loc:"San Vigilio di Marebbe, S. Tyrol", lat:46.79818, lng:11.84242, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Hotel Falkensteinerhof", loc:"Vals, South Tyrol", lat:46.84305, lng:11.62687, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Hotel Antholz", loc:"Antholz, South Tyrol", lat:46.87906, lng:12.14198, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Hotel Bozen WaltherPark", loc:"Bolzano, South Tyrol", lat:46.49631, lng:11.35512, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Hotel & Spa Jesolo", loc:"Jesolo, Veneto", lat:45.51132, lng:12.66425, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Residences Jesolo", loc:"Jesolo, Veneto", lat:45.51132, lng:12.66425, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Resort Capo Boi", loc:"Villasimius, Sardinia", lat:39.12955, lng:9.46529, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Club Funimation Garden Calabria", loc:"Stalettì, Calabria", lat:38.81584, lng:16.22186, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Resort Lake Garda", loc:"Lake Garda, Lombardy", lat:45.59757, lng:10.51638, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Family Resort Sicily", loc:"Licata, Sicily", lat:37.11203, lng:13.97482, g:"falk", cc:"IT" },
+  { name:"Falkensteiner Luxury Villas", loc:"Punta Skala, Zadar", lat:44.19518, lng:15.14556, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Hotel & Spa Iadera", loc:"Punta Skala, Zadar", lat:44.19518, lng:15.14557, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Family Hotel Diadora", loc:"Punta Skala, Zadar", lat:44.19412, lng:15.15067, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Residences Senia", loc:"Punta Skala, Zadar", lat:44.19445, lng:15.14718, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Hotel Adriana", loc:"Zadar, Croatia", lat:44.13527, lng:15.21119, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Club Funimation Borik", loc:"Zadar, Croatia", lat:44.13428, lng:15.21042, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Hotel Park Punat", loc:"Punat, Krk Island", lat:45.02022, lng:14.62778, g:"falk", cc:"HR" },
+  { name:"Falkensteiner Spa Resort Mariánské Lázně", loc:"Mariánské Lázně, Czech Republic", lat:49.97106, lng:12.7017, g:"falk", cc:"CZ" },
+  { name:"Falkensteiner Hotel Prague", loc:"Prague, Czech Republic", lat:50.08301, lng:14.43163, g:"falk", cc:"CZ" },
+  { name:"Falkensteiner Hotel Bratislava", loc:"Bratislava, Slovakia", lat:48.1459, lng:17.10372, g:"falk", cc:"SK" },
 ];
 
 // ── MAP SETUP ────────────────────────────────────────────────────────────────
@@ -435,6 +469,12 @@ legend.onAdd = () => {
     <div class="legend-item">
       <div class="legend-dot" style="background:${COLORS['landal']}"></div>
       <span>NL · UK · DE · BE · AT · DK · CH · CZ</span>
+    </div>
+    <hr class="legend-divider">
+    <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Falkensteiner (${counts['falk'] || 0})</div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${COLORS['falk']}"></div>
+      <span>AT · IT · HR · CZ · SK</span>
     </div>
   `;
   return div;
