@@ -64,7 +64,7 @@
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 const BUILD_DATE = "2026-08-21";
 console.log(`Family Resorts Map — v${APP_VERSION} (built ${BUILD_DATE})`);
 
@@ -116,6 +116,14 @@ const places = [
   { name:"Dachsteinkönig",                                 loc:"Gosau, Upper Austria",                tag:"Familux Resort",  lat:47.5333, lng:13.5050, rating:4.9, ratingCount:1741, img:"images/spa-at/dachsteinkonig.jpg", url:"http://www.dachsteinkoenig.at/", g:"spa-AT" },
   { name:"Naturhotel Forsthofgut",                         loc:"Leogang, Salzburg",                   tag:"5★",             lat:47.4423, lng:12.7569, rating:4.6, ratingCount:1204, img:"images/spa-at/naturhotel-forsthofgut.jpg", url:"https://www.forsthofgut.at/", g:"spa-AT" },
   { name:"Stanglwirt",                                     loc:"Going am Wilden Kaiser, Tyrol",       tag:"5★",             lat:47.5533, lng:12.3744, rating:4.5, ratingCount:3571, img:"images/spa-at/stanglwirt.jpg", url:"https://www.stanglwirt.com/?utm_source=google&utm_medium=organic&utm_campaign=gmb", g:"spa-AT" },
+  { name:"Habachklause",                                   loc:"Bramberg am Wildkogel, Salzburg",     lat:47.246497, lng:12.321029, rating:4.8, ratingCount:377, img:"images/spa-at/habachklause.jpg", url:"https://www.habachklause.com/?utm_source=google_my_business&utm_medium=organic&utm_campaign=OMH_familotel_google_my_business", g:"spa-AT" },
+  { name:"Kinderhotel Waldhof",                            loc:"Großarl, Salzburg",                   lat:47.246549, lng:13.2001346, rating:4.7, ratingCount:656, img:"images/spa-at/kinderhotel-waldhof.jpg", url:"https://www.kinderhotel-waldhof.at/", g:"spa-AT" },
+  { name:"POST Family Resort",                             loc:"Unken, Salzburg",                     lat:47.6544595, lng:12.733727, rating:4.8, ratingCount:583, img:"images/spa-at/post-family-resort.jpg", url:"https://www.post-familyresort.com/", g:"spa-AT" },
+  { name:"Ferienanlage Central",                           loc:"Flachau, Salzburg",                   lat:47.3486712, lng:13.3920008, rating:4.8, ratingCount:197, img:"images/spa-at/ferienanlage-central.jpg", url:"http://www.central-flachau.com/", g:"spa-AT" },
+  { name:"Kinderbauernhof Moabauer",                       loc:"Flachau, Salzburg",                   lat:47.3605041, lng:13.3883012, rating:4.7, ratingCount:31, img:"images/spa-at/kinderbauernhof-moabauer.jpg", url:"https://www.kinderbauernhof.at/", g:"spa-AT" },
+  { name:"Familien Natur Resort Moar Gut",                 loc:"Großarl, Salzburg",                   lat:47.2133804, lng:13.1937685, rating:4.7, ratingCount:456, img:"images/spa-at/familien-natur-resort-moar-gut.jpg", url:"https://www.moargut.com/?utm_source=google&utm_medium=organic&utm_campaign=GMB", g:"spa-AT" },
+  { name:"Kinderhotel Felben",                             loc:"Mittersill, Salzburg",                lat:47.2772222, lng:12.4911111, rating:4.8, ratingCount:447, img:"images/spa-at/kinderhotel-felben.jpg", url:"https://www.felben.at/de/kinder", g:"spa-AT" },
+  { name:"Familienresort Ellmauhof",                       loc:"Saalbach-Hinterglemm, Salzburg",      lat:47.3780556, lng:12.6047222, rating:4.8, ratingCount:1066, img:"images/spa-at/familienresort-ellmauhof.jpg", url:"http://www.ellmauhof.at/", g:"spa-AT" },
 
   // ── FAMILY SPA RESORTS: GERMANY ──────────────────────────────────────────
   { name:"Vier Jahreszeiten am Schluchsee",                loc:"Schluchsee, Baden-Württemberg",       tag:"Spa Hotel",      lat:47.8197, lng:8.1878,  rating:4.4, ratingCount:1829, img:"images/spa-de/vier-jahreszeiten-am-schluchsee.jpg", url:"https://www.vjz.de/?utm_source=google&utm_medium=organic&utm_campaign=google_business_profile", g:"spa-DE" },
