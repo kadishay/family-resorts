@@ -58,13 +58,32 @@
     a.popup-link { display: block; color: inherit; text-decoration: none; cursor: pointer; }
     a.popup-link:hover .popup-name { text-decoration: underline; }
     .popup-link-hint { margin-top: 6px; font-size: 11px; font-weight: 600; color: #1a73e8; }
+    .star-marker { background: transparent; border: none; }
+    .popup-fav-btn {
+      display: block; width: 100%; margin-top: 8px; padding: 6px 8px;
+      font-size: 12px; font-weight: 600; border-radius: 6px;
+      border: 1px solid #ddd; background: #f7f7f7; color: #333; cursor: pointer;
+    }
+    .popup-fav-btn:hover { background: #eee; }
+    .popup-fav-btn.is-fav { background: #fff6d8; border-color: #e6c34d; color: #8a6d00; }
+    .legend-fav-list { list-style: none; margin: 0 0 4px 0; padding: 0; }
+    .legend-fav-item {
+      display: flex; align-items: center; gap: 7px; padding: 4px 2px;
+      border-radius: 5px; color: #333;
+    }
+    .legend-fav-item:hover { background: #f5f5f5; }
+    .legend-fav-item.dragging { opacity: 0.4; }
+    .legend-fav-drag { cursor: grab; color: #bbb; font-size: 13px; flex-shrink: 0; }
+    .legend-fav-name { flex: 1; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    .legend-fav-empty { color: #888; font-size: 12px; line-height: 1.4; }
   </style>
 </head>
 <body>
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-const APP_VERSION = "11";
+const APP_VERSION = "12";
 const BUILD_DATE = "2026-08-21";
 console.log(`Family Resorts Map — v${APP_VERSION} (built ${BUILD_DATE})`);
 
@@ -84,6 +103,23 @@ const LABELS = {
   'landal': 'Landal GreenParks',
   'falk':   'Falkensteiner Hotels & Residences',
 };
+
+// ── FAVORITES (shared via Supabase) ───────────────────────────────────────────
+const SUPABASE_URL = "https://dtahkhajrnljgzkfdtor.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0YWhraGFqcm5samd6a2ZkdG9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMTQxOTAsImV4cCI6MjEwMjg5MDE5MH0.T3JYdfuZST_bK33eZcbDuq_hSkCpbhtBFjY1QDJ-Vwg";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let favorites = []; // [{hotel_name, sort_order}], ordered by sort_order
+
+function isFavorite(name) {
+  return favorites.some(f => f.hotel_name === name);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
 
 const places = [
   // ── FAMILY SPA RESORTS: AUSTRIA ──────────────────────────────────────────
@@ -458,24 +494,13 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // ── MARKERS ──────────────────────────────────────────────────────────────────
-const bounds = [];
-// Render landal first, then cp, then spa hotels on top
-[...places].sort(a => a.g === 'landal' ? -2 : a.g === 'cp' ? -1 : 1).forEach(p => {
-  const color = COLORS[p.g];
-  const isCp = p.g === 'cp' || p.g === 'landal';
-  const marker = L.circleMarker([p.lat, p.lng], {
-    radius:      isCp ? 8 : 7,
-    fillColor:   color,
-    color:       'white',
-    weight:      isCp ? 1.5 : 2,
-    opacity:     1,
-    fillOpacity: isCp ? 0.75 : 0.92,
-  }).addTo(map);
-
+function buildPopupHtml(p, color) {
   const imgHtml = p.img ? `<img class="popup-img" src="${p.img}" alt="${p.name}">` : '';
   const ratingHtml = p.rating ? `<div class="popup-rating">★ ${p.rating.toFixed(1)} <span class="popup-rating-count">(${p.ratingCount.toLocaleString()} Google reviews)</span></div>` : '';
   const tagHtml = p.tag ? `<span class="popup-tag" style="background:${color}">${p.tag}</span>` : '';
   const linkHtml = p.url ? `<div class="popup-link-hint">Visit website ↗</div>` : '';
+  const fav = isFavorite(p.name);
+  const favBtnHtml = `<button class="popup-fav-btn${fav ? ' is-fav' : ''}" data-name="${escapeHtml(p.name)}">${fav ? '★ Remove from favorites' : '☆ Add to favorites'}</button>`;
 
   const body = `
     ${imgHtml}
@@ -484,27 +509,161 @@ const bounds = [];
     ${ratingHtml}
     ${tagHtml}
     ${linkHtml}
+    ${favBtnHtml}
   `;
 
-  marker.bindPopup(
-    p.url
-      ? `<a class="popup-link" href="${p.url}" target="_blank" rel="noopener">${body}</a>`
-      : body,
-    { maxWidth: 260 }
-  );
+  return p.url
+    ? `<a class="popup-link" href="${p.url}" target="_blank" rel="noopener">${body}</a>`
+    : body;
+}
 
+function starIcon(color) {
+  return L.divIcon({
+    className: 'star-marker',
+    html: `<svg viewBox="0 0 24 24" width="26" height="26"><path d="M12 2.5l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7-5.4-4.7 7.1-.6z" fill="${color}" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+}
+
+function makeMarker(p) {
+  const color = COLORS[p.g];
+  const isCp = p.g === 'cp' || p.g === 'landal';
+  const marker = isFavorite(p.name)
+    ? L.marker([p.lat, p.lng], { icon: starIcon(color) })
+    : L.circleMarker([p.lat, p.lng], {
+        radius:      isCp ? 8 : 7,
+        fillColor:   color,
+        color:       'white',
+        weight:      isCp ? 1.5 : 2,
+        opacity:     1,
+        fillOpacity: isCp ? 0.75 : 0.92,
+      });
+  marker.bindPopup(buildPopupHtml(p, color), { maxWidth: 260 });
+  return marker;
+}
+
+const markersByName = new Map();
+const bounds = [];
+// Render landal first, then cp, then spa hotels on top
+[...places].sort(a => a.g === 'landal' ? -2 : a.g === 'cp' ? -1 : 1).forEach(p => {
+  const marker = makeMarker(p).addTo(map);
+  markersByName.set(p.name, marker);
   bounds.push([p.lat, p.lng]);
 });
 
 map.fitBounds(bounds, { padding: [36, 36] });
 
+// Swap a place's marker between dot/star to match current favorite state.
+function refreshMarker(p) {
+  const old = markersByName.get(p.name);
+  if (!old) return;
+  const wasOpen = old.isPopupOpen();
+  map.removeLayer(old);
+  const marker = makeMarker(p).addTo(map);
+  markersByName.set(p.name, marker);
+  if (wasOpen) marker.openPopup();
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.popup-fav-btn');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  toggleFavorite(btn.dataset.name);
+});
+
+// ── FAVORITES SYNC ───────────────────────────────────────────────────────────
+async function loadFavorites() {
+  try {
+    const { data, error } = await sb.from('favorites').select('*').order('sort_order', { ascending: true });
+    if (error) throw error;
+    favorites = (data || []).filter(f => places.some(p => p.name === f.hotel_name));
+  } catch (e) {
+    console.warn('Failed to load favorites', e);
+    favorites = [];
+  }
+  places.forEach(refreshMarker);
+  renderFavoritesLegend();
+}
+
+async function toggleFavorite(name) {
+  const fav = isFavorite(name);
+  try {
+    if (fav) {
+      const { error } = await sb.from('favorites').delete().eq('hotel_name', name);
+      if (error) throw error;
+    } else {
+      const maxOrder = favorites.reduce((m, f) => Math.max(m, f.sort_order), -1);
+      const { error } = await sb.from('favorites').insert({ hotel_name: name, sort_order: maxOrder + 1 });
+      if (error) throw error;
+    }
+  } catch (e) {
+    console.warn('Failed to toggle favorite', e);
+  }
+  await loadFavorites();
+}
+
+async function reorderFavorites(orderedNames) {
+  try {
+    await Promise.all(orderedNames.map((name, i) =>
+      sb.from('favorites').update({ sort_order: i }).eq('hotel_name', name)
+    ));
+  } catch (e) {
+    console.warn('Failed to reorder favorites', e);
+  }
+  await loadFavorites();
+}
+
+sb.channel('favorites-sync')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'favorites' }, () => loadFavorites())
+  .subscribe();
+
 // ── LEGEND ───────────────────────────────────────────────────────────────────
 const counts = {};
 places.forEach(p => { counts[p.g] = (counts[p.g] || 0) + 1; });
 
+let legendDiv = null;
+let draggedFavEl = null;
+
+function renderFavoritesLegend() {
+  if (!legendDiv) return;
+  const section = legendDiv.querySelector('#legend-fav-section');
+  if (!section) return;
+
+  const items = favorites
+    .map(f => places.find(p => p.name === f.hotel_name))
+    .filter(Boolean);
+
+  const listHtml = items.length
+    ? `<ul class="legend-fav-list" id="legend-fav-list">
+        ${items.map(p => `
+          <li class="legend-fav-item" draggable="true" data-name="${escapeHtml(p.name)}">
+            <span class="legend-fav-drag">⋮⋮</span>
+            <span class="legend-fav-name">${escapeHtml(p.name)}</span>
+          </li>`).join('')}
+      </ul>`
+    : `<div class="legend-fav-empty">No favorites yet — click ☆ on a hotel to add one.</div>`;
+
+  section.innerHTML = `
+    <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">★ Favorites (${items.length})</div>
+    ${listHtml}
+    <hr class="legend-divider">
+  `;
+}
+
+function focusPlace(name) {
+  const p = places.find(pl => pl.name === name);
+  if (!p) return;
+  map.setView([p.lat, p.lng], Math.max(map.getZoom(), 10));
+  const marker = markersByName.get(name);
+  if (marker) marker.openPopup();
+}
+
 const legend = L.control({ position: 'bottomleft' });
 legend.onAdd = () => {
   const div = L.DomUtil.create('div', 'legend');
+  legendDiv = div;
   const startExpanded = !window.matchMedia('(max-width: 640px)').matches;
   if (startExpanded) div.classList.add('expanded');
 
@@ -517,6 +676,7 @@ legend.onAdd = () => {
       <span class="legend-toggle">▼</span>
     </div>
     <div class="legend-body">
+      <div id="legend-fav-section"></div>
       <div style="font-size:11px;color:#888;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Family Spa Resorts (${spaTotal})</div>
       ${spaGroups.map(g => `
         <div class="legend-item">
@@ -548,11 +708,49 @@ legend.onAdd = () => {
     div.classList.toggle('expanded');
   });
 
+  div.addEventListener('click', (e) => {
+    const nameEl = e.target.closest('.legend-fav-name');
+    if (!nameEl) return;
+    focusPlace(nameEl.closest('.legend-fav-item').dataset.name);
+  });
+
+  div.addEventListener('dragstart', (e) => {
+    const li = e.target.closest('.legend-fav-item');
+    if (!li) return;
+    draggedFavEl = li;
+    li.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  div.addEventListener('dragover', (e) => {
+    const li = e.target.closest('.legend-fav-item');
+    if (!li || !draggedFavEl || li === draggedFavEl) return;
+    e.preventDefault();
+    const rect = li.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height / 2;
+    li.parentNode.insertBefore(draggedFavEl, before ? li : li.nextSibling);
+  });
+
+  div.addEventListener('drop', (e) => e.preventDefault());
+
+  div.addEventListener('dragend', () => {
+    if (!draggedFavEl) return;
+    draggedFavEl.classList.remove('dragging');
+    const list = div.querySelector('#legend-fav-list');
+    if (list) {
+      const order = [...list.querySelectorAll('.legend-fav-item')].map(li => li.dataset.name);
+      reorderFavorites(order);
+    }
+    draggedFavEl = null;
+  });
+
   L.DomEvent.disableClickPropagation(div);
   L.DomEvent.disableScrollPropagation(div);
   return div;
 };
 legend.addTo(map);
+renderFavoritesLegend();
+loadFavorites();
 </script>
 </body>
 </html>
