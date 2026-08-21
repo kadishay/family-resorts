@@ -16,8 +16,24 @@
       box-shadow: 0 2px 12px rgba(0,0,0,0.18);
       font-size: 13px;
       min-width: 190px;
+      max-width: calc(100vw - 24px);
     }
-    .legend h4 { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #222; letter-spacing: 0.02em; }
+    .legend-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; cursor: pointer; user-select: none;
+    }
+    .legend h4 { font-size: 13px; font-weight: 700; color: #222; letter-spacing: 0.02em; }
+    .legend.expanded h4 { margin-bottom: 0; }
+    .legend-toggle {
+      font-size: 11px; color: #888; flex-shrink: 0;
+      transition: transform 0.2s ease; transform: rotate(-90deg);
+    }
+    .legend.expanded .legend-toggle { transform: rotate(0deg); }
+    .legend-body {
+      display: none; margin-top: 10px;
+      max-height: 60vh; overflow-y: auto;
+    }
+    .legend.expanded .legend-body { display: block; }
     .legend-item { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; color: #333; }
     .legend-dot {
       width: 13px; height: 13px; border-radius: 50%;
@@ -48,7 +64,7 @@
 <div id="map"></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const APP_VERSION = "8";
+const APP_VERSION = "9";
 const BUILD_DATE = "2026-08-21";
 console.log(`Family Resorts Map — v${APP_VERSION} (built ${BUILD_DATE})`);
 
@@ -480,36 +496,51 @@ places.forEach(p => { counts[p.g] = (counts[p.g] || 0) + 1; });
 const legend = L.control({ position: 'bottomleft' });
 legend.onAdd = () => {
   const div = L.DomUtil.create('div', 'legend');
+  const startExpanded = !window.matchMedia('(max-width: 640px)').matches;
+  if (startExpanded) div.classList.add('expanded');
+
   const spaGroups = ['spa-AT','spa-DE','spa-IT'];
   const spaTotal = spaGroups.reduce((n, g) => n + (counts[g] || 0), 0);
 
   div.innerHTML = `
-    <h4>Family Resorts Map — ${places.length} locations</h4>
-    <div style="font-size:11px;color:#888;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Family Spa Resorts (${spaTotal})</div>
-    ${spaGroups.map(g => `
+    <div class="legend-header">
+      <h4>Family Resorts Map — ${places.length} locations</h4>
+      <span class="legend-toggle">▼</span>
+    </div>
+    <div class="legend-body">
+      <div style="font-size:11px;color:#888;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Family Spa Resorts (${spaTotal})</div>
+      ${spaGroups.map(g => `
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${COLORS[g]}"></div>
+          <span>${g === 'spa-AT' ? 'Austria' : g === 'spa-DE' ? 'Germany' : 'Italy'} <span style="color:#888">(${counts[g] || 0})</span></span>
+        </div>`).join('')}
+      <hr class="legend-divider">
+      <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Center Parcs (${counts['cp'] || 0})</div>
       <div class="legend-item">
-        <div class="legend-dot" style="background:${COLORS[g]}"></div>
-        <span>${g === 'spa-AT' ? 'Austria' : g === 'spa-DE' ? 'Germany' : 'Italy'} <span style="color:#888">(${counts[g] || 0})</span></span>
-      </div>`).join('')}
-    <hr class="legend-divider">
-    <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Center Parcs (${counts['cp'] || 0})</div>
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${COLORS['cp']}"></div>
-      <span>FR · NL · BE · DE · DK</span>
-    </div>
-    <hr class="legend-divider">
-    <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Landal GreenParks (${counts['landal'] || 0})</div>
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${COLORS['landal']}"></div>
-      <span>NL · UK · DE · BE · AT · DK · CH · CZ</span>
-    </div>
-    <hr class="legend-divider">
-    <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Falkensteiner (${counts['falk'] || 0})</div>
-    <div class="legend-item">
-      <div class="legend-dot" style="background:${COLORS['falk']}"></div>
-      <span>AT · IT · HR · CZ · SK</span>
+        <div class="legend-dot" style="background:${COLORS['cp']}"></div>
+        <span>FR · NL · BE · DE · DK</span>
+      </div>
+      <hr class="legend-divider">
+      <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Landal GreenParks (${counts['landal'] || 0})</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${COLORS['landal']}"></div>
+        <span>NL · UK · DE · BE · AT · DK · CH · CZ</span>
+      </div>
+      <hr class="legend-divider">
+      <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Falkensteiner (${counts['falk'] || 0})</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${COLORS['falk']}"></div>
+        <span>AT · IT · HR · CZ · SK</span>
+      </div>
     </div>
   `;
+
+  div.querySelector('.legend-header').addEventListener('click', () => {
+    div.classList.toggle('expanded');
+  });
+
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.disableScrollPropagation(div);
   return div;
 };
 legend.addTo(map);
