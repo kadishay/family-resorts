@@ -75,7 +75,37 @@
     .legend-fav-item.dragging { opacity: 0.4; }
     .legend-fav-drag { cursor: grab; color: #bbb; font-size: 13px; flex-shrink: 0; }
     .legend-fav-name { flex: 1; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+    .legend-fav-rating { color: #b8860b; font-weight: 600; }
     .legend-fav-empty { color: #888; font-size: 12px; line-height: 1.4; }
+    .search-control { width: 260px; max-width: calc(100vw - 24px); }
+    .search-input {
+      width: 100%; padding: 9px 12px; font-size: 13.5px;
+      border: none; border-radius: 10px; outline: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18); font-family: inherit;
+    }
+    .search-results {
+      display: none; margin-top: 6px; background: white; border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18); overflow: hidden; max-height: 60vh; overflow-y: auto;
+    }
+    .search-results.open { display: block; }
+    .search-result {
+      display: flex; flex-direction: column; gap: 1px; padding: 8px 12px;
+      cursor: pointer; border-bottom: 1px solid #f0f0f0;
+    }
+    .search-result:last-child { border-bottom: none; }
+    .search-result:hover { background: #f5f5f5; }
+    .search-result-name { font-size: 13px; font-weight: 600; color: #111; }
+    .search-result-loc { font-size: 11.5px; color: #777; }
+    .search-empty { padding: 10px 12px; font-size: 12.5px; color: #888; }
+    .highlight-pulse {
+      width: 40px; height: 40px; border-radius: 50%;
+      animation: pulse-ring 1.4s ease-out 2;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.3); opacity: 0.8; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -83,7 +113,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-const APP_VERSION = "14";
+const APP_VERSION = "15";
 const BUILD_DATE = "2026-08-21";
 console.log(`Family Resorts Map — v${APP_VERSION} (built ${BUILD_DATE})`);
 
@@ -191,6 +221,7 @@ const places = [
   { name:"Quellenhof Luxury Resort Lazise",                loc:"Lazise, Veneto",                      tag:"5★",             lat:45.5020, lng:10.7333, rating:4.8, ratingCount:1209, img:"images/spa-it/quellenhof-luxury-resort-lazise.jpg", url:"https://www.quellenhof-lazise.it/?utm_source=google&utm_medium=GMB&utm_campaign=GMB", g:"spa-IT" },
   { name:"Sonnwies",                                       loc:"Lüsen, South Tyrol",                  tag:"5★",             lat:46.7344, lng:11.6292, rating:4.6, ratingCount:614, img:"images/spa-it/sonnwies.jpg", url:"http://www.sansonnea.com/", g:"spa-IT" },
   { name:"AKI Family Resort Plose",                        loc:"Meluno, South Tyrol",                 lat:46.6826026, lng:11.6643134, rating:4.9, ratingCount:208, img:"images/spa-it/aki-family-resort-plose.jpg", url:"https://www.aki-plose.com/", g:"spa-IT" },
+  { name:"Chalet Mirabell",                                loc:"Hafling, South Tyrol",                lat:46.6565057, lng:11.2210162, rating:4.7, ratingCount:1106, img:"images/spa-it/chalet-mirabell.jpg", url:"https://www.hotel-chaletmirabell.com/de/hotel-chalet-hafling/1-0.html?utm_source=google&utm_medium=organic&utm_campaign=MyBusinessEintragMirabell", g:"spa-IT" },
 
   // ── CENTER PARCS: FRANCE ─────────────────────────────────────────────────
   { name:"Center Parcs Villages Nature Paris",             loc:"Bailly-Romainvilliers, Ile-de-France",tag:"Center Parcs",   lat:48.8495, lng:2.8423,  rating:3.5, ratingCount:13592, img:"images/cp/center-parcs-villages-nature-paris.jpg", url:"https://www.centerparcs.fr/fr-fr/france/fp_VN_vacances-domaine-villages-nature-paris", g:"cp" },
@@ -643,7 +674,7 @@ function renderFavoritesLegend() {
         ${items.map(p => `
           <li class="legend-fav-item" draggable="true" data-name="${escapeHtml(p.name)}">
             <span class="legend-fav-drag">⋮⋮</span>
-            <span class="legend-fav-name">${escapeHtml(p.name)}</span>
+            <span class="legend-fav-name">${escapeHtml(p.name)}${p.rating ? ` <span class="legend-fav-rating">(${p.rating.toFixed(1)})</span>` : ''}</span>
           </li>`).join('')}
       </ul>`
     : `<div class="legend-fav-empty">No favorites yet — click ☆ on a hotel to add one.</div>`;
@@ -655,12 +686,28 @@ function renderFavoritesLegend() {
   `;
 }
 
+let highlightMarker = null;
+function highlightPlace(p) {
+  if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; }
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="highlight-pulse" style="background:${COLORS[p.g]}"></div>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+  });
+  highlightMarker = L.marker([p.lat, p.lng], { icon, interactive: false, zIndexOffset: -1000 }).addTo(map);
+  setTimeout(() => {
+    if (highlightMarker) { map.removeLayer(highlightMarker); highlightMarker = null; }
+  }, 2800);
+}
+
 function focusPlace(name) {
   const p = places.find(pl => pl.name === name);
   if (!p) return;
-  map.setView([p.lat, p.lng], Math.max(map.getZoom(), 10));
+  map.setView([p.lat, p.lng], Math.max(map.getZoom(), 13));
   const marker = markersByName.get(name);
   if (marker) marker.openPopup();
+  highlightPlace(p);
 }
 
 const legend = L.control({ position: 'bottomleft' });
@@ -754,6 +801,66 @@ legend.onAdd = () => {
 legend.addTo(map);
 renderFavoritesLegend();
 loadFavorites();
+
+// ── SEARCH ───────────────────────────────────────────────────────────────────
+const search = L.control({ position: 'topright' });
+search.onAdd = () => {
+  const div = L.DomUtil.create('div', 'search-control');
+  div.innerHTML = `
+    <input class="search-input" type="text" placeholder="Search hotel name…" autocomplete="off">
+    <div class="search-results"></div>
+  `;
+
+  const input = div.querySelector('.search-input');
+  const results = div.querySelector('.search-results');
+
+  function renderResults(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      results.classList.remove('open');
+      results.innerHTML = '';
+      return;
+    }
+    const matches = places.filter(p => p.name.toLowerCase().includes(q)).slice(0, 8);
+    results.innerHTML = matches.length
+      ? matches.map(p => `
+          <div class="search-result" data-name="${escapeHtml(p.name)}">
+            <div class="search-result-name">${escapeHtml(p.name)}</div>
+            <div class="search-result-loc">${escapeHtml(p.loc)}</div>
+          </div>`).join('')
+      : `<div class="search-empty">No hotels found</div>`;
+    results.classList.add('open');
+  }
+
+  input.addEventListener('input', () => renderResults(input.value));
+  input.addEventListener('focus', () => { if (input.value.trim()) results.classList.add('open'); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      input.value = '';
+      results.classList.remove('open');
+      results.innerHTML = '';
+      input.blur();
+    }
+  });
+
+  results.addEventListener('click', (e) => {
+    const item = e.target.closest('.search-result');
+    if (!item) return;
+    focusPlace(item.dataset.name);
+    input.value = '';
+    results.classList.remove('open');
+    results.innerHTML = '';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!div.contains(e.target)) results.classList.remove('open');
+  });
+
+  L.DomEvent.disableClickPropagation(div);
+  L.DomEvent.disableScrollPropagation(div);
+  return div;
+};
+search.addTo(map);
 </script>
 </body>
 </html>
