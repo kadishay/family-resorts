@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Bumps VERSION and stamps index.html with it on every commit.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+version_file="$repo_root/VERSION"
+html_file="$repo_root/index.html"
+
+current=$(cat "$version_file" 2>/dev/null || echo 0)
+next=$((current + 1))
+echo "$next" > "$version_file"
+
+today=$(date +%Y-%m-%d)
+
+sed -i '' -E "s/const APP_VERSION = \"[^\"]*\";/const APP_VERSION = \"$next\";/" "$html_file"
+sed -i '' -E "s/const BUILD_DATE = \"[^\"]*\";/const BUILD_DATE = \"$today\";/" "$html_file"
+
+git add "$version_file" "$html_file"
